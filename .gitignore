@@ -1,0 +1,21 @@
+# Rust
+/target
+**/target
+Cargo.lock
+**/*.rs.bk
+*.pdb
+
+# WASM build artifacts
+**/pkg
+*.wasm
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Backup files
+*.bak
