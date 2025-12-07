@@ -1,5 +1,5 @@
 [package]
-name = "orders_of_magnitude"
+name = "projectile_test"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,6 +7,7 @@ edition = "2021"
 bevy = { workspace = true }
 log = { workspace = true }
 rhysics-common = { path = "../../../common" }
+bevy_egui = "0.38.0"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { workspace = true }

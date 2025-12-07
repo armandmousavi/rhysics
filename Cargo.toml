@@ -2,9 +2,9 @@
 resolver = "2"
 members = [
     "common",
-    "chapter_1/section_1/orders_of_magnitude",
     # Add new simulations here or use the create-sim.sh script
     "chapter_0/section_0/boids",
+    "chapter_4/section_3/projectile_test",
 ]
 
 [workspace.dependencies]
