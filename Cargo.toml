@@ -5,6 +5,7 @@ members = [
     # Add new simulations here or use the create-sim.sh script
     "chapter_0/section_0/boids",
     "chapter_4/section_3/projectile_test",
+    "chapter_4/section_2/acceleration_vector",
 ]
 
 [workspace.dependencies]
