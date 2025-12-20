@@ -331,7 +331,7 @@ fn update_dynamic_grid(
         commands.spawn((
             Text2d::new("(0, 0)"),
             TextFont {
-                font_size: label_size * 1.3,
+                font_size: label_size * 0.7,
                 ..default()
             },
             TextColor(label_color),

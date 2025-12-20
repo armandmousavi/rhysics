@@ -1,6 +1,7 @@
 use bevy::math::bounding::{Aabb2d, BoundingCircle, BoundingVolume, IntersectsVolume};
 use bevy::prelude::*;
 use rhysics_common::*;
+use rhysics_common::grid_camera::GridCameraPlugin;
 mod ui;
 
 #[cfg(target_arch = "wasm32")]
@@ -65,8 +66,8 @@ pub fn run() {
             "Chapter 4.3 - Projectile Test"
         )))
         .init_resource::<ProjectileSettings>()
-        .add_plugins(UiPlugin)
-        .add_systems(Startup, (setup, setup_projectile).chain())
+        .add_plugins((UiPlugin, GridCameraPlugin::default()))
+        .add_systems(Startup, setup_projectile)
         .add_systems(
             Update,
             (despawn_trajectory_markers, update_launch)
@@ -79,10 +80,6 @@ pub fn run() {
         )
         .add_systems(Update, check_for_collisions)
         .run();
-}
-
-fn setup(commands: Commands) {
-    spawn_camera(commands);
 }
 
 fn setup_projectile(

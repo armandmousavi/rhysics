@@ -16,16 +16,20 @@ pub struct ProjectileSettings {
     pub raw_acceleration_function_y: String,
     pub acceleration_function_x: Expr,
     pub acceleration_function_y: Expr,
+    pub initial_velocity: Vec2,
+    pub initial_position: Vec3,
     pub launched: bool,
 }
 
 impl Default for ProjectileSettings {
     fn default() -> Self {
         Self {
-            acceleration_function_x: "0.0".parse().unwrap(),
-            acceleration_function_y: "0.0".parse().unwrap(),
-            raw_acceleration_function_x: "0.0".to_string(),
-            raw_acceleration_function_y: "0.0".to_string(),
+            acceleration_function_x: "-x * (1 + 0.0001 * cos(x^2 + y^2))".parse().unwrap(),
+            acceleration_function_y: "-y * (1 + 0.0001 * cos(x^2 + y^2))".parse().unwrap(),
+            raw_acceleration_function_x: "-x * (1 + 0.0001 * cos(x^2 + y^2))".to_string(),
+            raw_acceleration_function_y: "-y * (1 + 0.0001 * cos(x^2 + y^2))".to_string(),
+            initial_velocity: Vec2::new(-60.0, 60.0),
+            initial_position: Vec3::new(100.0, 0.0, 0.0),
             launched: false
         }
     }
@@ -46,18 +50,37 @@ struct Projectile;
 struct TrajectoryMarker;
 
 /// Predicts the trajectory for each second
-fn predicted_trajectory(_settings: &ProjectileSettings, _seconds: i32) -> Vec<Vec2> {
-    let trajectory = Vec::new();
-    // TODO: Implement trajectory prediction
-    // let v0 = settings.initial_velocity.0;
-    // let a = Vec2::new(0.0, settings.gravitational_constant);
-    
-    // for t in 1..=seconds {
-    //     let t = t as f32;
-    //     // Kinematic equation: position = v0*t + 0.5*a*t^2
-    //     let position = v0 * t + 0.5 * a * t * t;
-    //     trajectory.push(position);
-    // }
+fn predicted_trajectory(settings: &ProjectileSettings, seconds: i32) -> Vec<Vec2> {
+    let Ok(accel_x_fn) = settings.acceleration_function_x.clone().bind2("x", "y") else {
+        return Vec::new();
+    };
+    let Ok(accel_y_fn) = settings.acceleration_function_y.clone().bind2("x", "y") else {
+        return Vec::new();
+    };
+
+    let mut trajectory = Vec::new();
+
+    let mut position = settings.initial_position.truncate();
+    let mut velocity = settings.initial_velocity;
+
+    let dt = 1.0 / 60.0;
+    let steps = seconds as usize * 60;
+
+    for i in 0..steps {
+        (position, velocity) = step_projectile(
+            position,
+            velocity,
+            &accel_x_fn,
+            &accel_y_fn,
+            dt,
+        );
+
+        // sample once per second (or change this density)
+        if i % 60 == 0 {
+            trajectory.push(position);
+        }
+    }
+
     trajectory
 }
 
@@ -90,15 +113,34 @@ pub fn run() {
 fn setup_projectile(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    settings: Res<ProjectileSettings>,
 ) {
-    // Spawn projectile at the origin
+    // Spawn projectile at initial position
     commands.spawn((
         Projectile,
         Mesh2d(meshes.add(Circle::default())),
         MeshMaterial2d(materials.add(Color::srgb(0.0, 1.0, 0.0))),
-        Transform::from_translation(Vec3::ZERO).with_scale(Vec3::splat(10.0)),
+        Transform::from_translation(settings.initial_position).with_scale(Vec3::splat(10.0)),
+        Velocity(settings.initial_velocity),
     ));
+}
+
+fn step_projectile(
+    position: Vec2,
+    velocity: Vec2,
+    accel_x_fn: &impl Fn(f64, f64) -> f64,
+    accel_y_fn: &impl Fn(f64, f64) -> f64,
+    dt: f32,
+) -> (Vec2, Vec2) {
+    let ax = accel_x_fn(position.x as f64, position.y as f64) as f32;
+    let ay = accel_y_fn(position.x as f64, position.y as f64) as f32;
+
+    // semi-implicit Euler
+    let new_velocity = velocity + Vec2::new(ax, ay) * dt;
+    let new_position = position + new_velocity * dt;
+
+    (new_position, new_velocity)
 }
 
 fn apply_acceleration(
@@ -106,35 +148,35 @@ fn apply_acceleration(
     settings: Res<ProjectileSettings>,
     time: Res<Time>,
 ) {
-    // Bind the functions once per frame instead of per projectile
-    // If binding fails (e.g., user is still typing), skip acceleration this frame
     let Ok(accel_x_fn) = settings.acceleration_function_x.clone().bind2("x", "y") else {
         return;
     };
     let Ok(accel_y_fn) = settings.acceleration_function_y.clone().bind2("x", "y") else {
         return;
     };
-    
+
+    let dt = time.delta_secs();
+
     for (mut velocity, launched, transform) in &mut query {
-        // Only apply acceleration when launched
         if launched.0 {
-            let x: f64 = transform.translation.x.into();
-            let y: f64 = transform.translation.y.into();
-            let acceleration_x = accel_x_fn(x, y);
-            let acceleration_y = accel_y_fn(x, y);
-            velocity.0.x += acceleration_x as f32 * time.delta_secs();
-            velocity.0.y += acceleration_y as f32 * time.delta_secs();
+            let pos = transform.translation.truncate();
+            let ax = accel_x_fn(pos.x as f64, pos.y as f64) as f32;
+            let ay = accel_y_fn(pos.x as f64, pos.y as f64) as f32;
+
+            velocity.0 += Vec2::new(ax, ay) * dt;
         }
     }
 }
 
 fn apply_velocity(
-    mut query: Query<(&mut Transform, &Velocity), With<Projectile>>,
+    mut query: Query<(&mut Transform, &Velocity, &Launched), With<Projectile>>,
     time: Res<Time>,
 ) {
-    for (mut transform, velocity) in &mut query {
-        transform.translation.x += velocity.0.x * time.delta_secs();
-        transform.translation.y += velocity.0.y * time.delta_secs();
+    for (mut transform, velocity, launched) in &mut query {
+        if launched.0 {
+            transform.translation.x += velocity.0.x * time.delta_secs();
+            transform.translation.y += velocity.0.y * time.delta_secs();
+        }
     }
 }
 
@@ -230,13 +272,11 @@ fn update_launch(
 ) {
     if let Ok((mut velocity, mut transform, mut launched)) = projectile_query.single_mut() {
         if !settings.launched {
-            // Reset to origin
-            velocity.0 = Vec2::ZERO;
-            transform.translation = Vec3::ZERO;
+            velocity.0 = settings.initial_velocity;
+            transform.translation = settings.initial_position;
             launched.0 = false;
             
-            // Show trajectory preview when not launched
-            let current_trajectory = predicted_trajectory(&settings, 10);
+            let current_trajectory = predicted_trajectory(&settings, 100);
             for position in current_trajectory {
                 commands.spawn((
                     Mesh2d(meshes.add(Circle::default())),
@@ -246,7 +286,8 @@ fn update_launch(
                 ));
             }
         } else if !launched.0 {
-            velocity.0 = Vec2::ZERO;
+            velocity.0 = settings.initial_velocity;
+            transform.translation = settings.initial_position;
             launched.0 = true;
         }
     }
