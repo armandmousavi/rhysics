@@ -60,7 +60,7 @@ edition = "2021"
 [dependencies]
 bevy = { workspace = true }
 log = { workspace = true }
-rhysics-common = { path = "../../../common" }
+rhysics-common = { path = "../../../common", features = ["egui"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { workspace = true }

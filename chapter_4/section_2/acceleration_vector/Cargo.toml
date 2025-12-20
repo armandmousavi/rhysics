@@ -8,7 +8,7 @@ bevy = { workspace = true }
 log = { workspace = true }
 meval = "0.2.0"
 bevy_egui = "0.38.0"
-rhysics-common = { path = "../../../common" }
+rhysics-common = { path = "../../../common", features = ["egui"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { workspace = true }
