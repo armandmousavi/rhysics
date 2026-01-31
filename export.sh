@@ -11,8 +11,11 @@ YELLOW='\033[0;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-# Default target directory
-DEFAULT_TARGET_DIR="${HOME}/Documents/armandmousavi.github.io/rhysics"
+# Default target directory (can be overridden with EXPORT_TARGET_DIR env var)
+DEFAULT_TARGET_DIR="${EXPORT_TARGET_DIR:-${HOME}/Documents/armandmousavi.github.io/rhysics}"
+
+# CI mode skips interactive prompts
+CI_MODE="${CI:-false}"
 
 # Save current directory
 ORIGINAL_DIR=$(pwd)
