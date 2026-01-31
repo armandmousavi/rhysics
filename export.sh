@@ -312,7 +312,7 @@ export_section() {
     local sim_count=0
     for sim in $(get_source_simulations "$chapter_num" "$section_num"); do
         build_simulation "$chapter_num" "$section_num" "$sim" "$target"
-        ((sim_count++))
+        ((sim_count++)) || true
     done
     
     if [ $sim_count -eq 0 ]; then
@@ -341,7 +341,7 @@ export_chapter() {
         done
         # Update section index after building all its simulations
         generate_section_index "$target" "$chapter_num" "$sec"
-        ((section_count++))
+        ((section_count++)) || true
     done
     
     if [ $section_count -eq 0 ]; then
@@ -376,7 +376,7 @@ export_all() {
             generate_section_index "$target" "$ch" "$sec"
         done
         generate_chapter_index "$target" "$ch"
-        ((chapter_count++))
+        ((chapter_count++)) || true
     done
     
     if [ $chapter_count -eq 0 ]; then
