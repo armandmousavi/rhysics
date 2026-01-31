@@ -249,6 +249,9 @@ build_simulation() {
     # Build with wasm-pack
     wasm-pack build --target web --out-dir "$output_dir/pkg" --release
     
+    # Remove wasm-pack's .gitignore so pkg files can be committed to target repo
+    rm -f "$output_dir/pkg/.gitignore"
+    
     # Copy index.html if it exists and inject backlink
     if [ -f "index.html" ]; then
         cp index.html "$output_dir/index.html"
