@@ -1,9 +1,7 @@
 name: Build and Deploy Simulations
 
 on:
-  push:
-    branches: [main]
-  workflow_dispatch:  # Allow manual trigger
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always

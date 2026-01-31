@@ -12,7 +12,7 @@ Cargo.lock
 # IDE
 .idea/
 .vscode/
-*.code-workspace
+rhysics.code-workspace
 *.swp
 *.swo
 *~
