@@ -97,9 +97,7 @@ generate_section_index() {
     # Build list of simulations
     local sim_links=""
     for sim in $(get_target_simulations "$target" "$chapter_num" "$section_num"); do
-        sim_links="${sim_links}        <a href=\"${sim}/index.html\" class=\"sim-card\">
-            <h2>${sim}</h2>
-        </a>
+        sim_links="${sim_links}                <li><a href=\"${sim}/index.html\">${sim}</a></li>
 "
     done
     
@@ -109,25 +107,19 @@ generate_section_index() {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chapter ${chapter_num}, Section ${section_num} - Physics Simulations</title>
-    <style>
-        body { font-family: system-ui, sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem; }
-        h1 { color: #333; }
-        .back-link { margin-bottom: 1rem; }
-        .back-link a { color: #0066cc; text-decoration: none; }
-        .back-link a:hover { text-decoration: underline; }
-        .simulations { display: grid; gap: 1rem; }
-        .sim-card { display: block; padding: 1rem; border: 1px solid #ddd; border-radius: 8px; text-decoration: none; color: inherit; transition: box-shadow 0.2s; }
-        .sim-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .sim-card h2 { margin: 0; color: #333; font-size: 1.2rem; }
-    </style>
+    <title>Chapter ${chapter_num}, Section ${section_num} - Rhysics</title>
+    <link rel="stylesheet" href="../../../styles.css">
 </head>
 <body>
-    <div class="back-link"><a href="../index.html">&larr; Back to Chapter ${chapter_num}</a></div>
-    <h1>Chapter ${chapter_num}, Section ${section_num}</h1>
-    <h3>Simulations</h3>
-    <div class="simulations">
-${sim_links}    </div>
+    <div class="container">
+        <div id="content">
+            <div class="back-link"><a href="../index.html">&larr; Back to Chapter ${chapter_num}</a></div>
+            <h1>Chapter ${chapter_num}, Section ${section_num}</h1>
+            <p class="subtitle">Simulations</p>
+            <ul class="link-list">
+${sim_links}            </ul>
+        </div>
+    </div>
 </body>
 </html>
 EOF
@@ -145,9 +137,7 @@ generate_chapter_index() {
     # Build list of sections
     local section_links=""
     for sec in $(get_target_sections "$target" "$chapter_num"); do
-        section_links="${section_links}        <a href=\"section_${sec}/index.html\" class=\"section-card\">
-            <h2>Section ${sec}</h2>
-        </a>
+        section_links="${section_links}                <li><a href=\"section_${sec}/index.html\">Section ${sec}</a></li>
 "
     done
     
@@ -157,25 +147,19 @@ generate_chapter_index() {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chapter ${chapter_num} - Physics Simulations</title>
-    <style>
-        body { font-family: system-ui, sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem; }
-        h1 { color: #333; }
-        .back-link { margin-bottom: 1rem; }
-        .back-link a { color: #0066cc; text-decoration: none; }
-        .back-link a:hover { text-decoration: underline; }
-        .sections { display: grid; gap: 1rem; }
-        .section-card { display: block; padding: 1rem; border: 1px solid #ddd; border-radius: 8px; text-decoration: none; color: inherit; transition: box-shadow 0.2s; }
-        .section-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .section-card h2 { margin: 0; color: #333; font-size: 1.2rem; }
-    </style>
+    <title>Chapter ${chapter_num} - Rhysics</title>
+    <link rel="stylesheet" href="../../styles.css">
 </head>
 <body>
-    <div class="back-link"><a href="../index.html">&larr; Back to All Chapters</a></div>
-    <h1>Chapter ${chapter_num}</h1>
-    <h3>Sections</h3>
-    <div class="sections">
-${section_links}    </div>
+    <div class="container">
+        <div id="content">
+            <div class="back-link"><a href="../index.html">&larr; Back to All Chapters</a></div>
+            <h1>Chapter ${chapter_num}</h1>
+            <p class="subtitle">Sections</p>
+            <ul class="link-list">
+${section_links}            </ul>
+        </div>
+    </div>
 </body>
 </html>
 EOF
@@ -191,9 +175,7 @@ generate_root_index() {
     # Build list of chapters
     local chapter_links=""
     for ch in $(get_target_chapters "$target"); do
-        chapter_links="${chapter_links}        <a href=\"chapter_${ch}/index.html\" class=\"chapter-card\">
-            <h2>Chapter ${ch}</h2>
-        </a>
+        chapter_links="${chapter_links}                <li><a href=\"chapter_${ch}/index.html\">Chapter ${ch}</a></li>
 "
     done
     
@@ -204,21 +186,18 @@ generate_root_index() {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rhysics - Physics Simulations</title>
-    <style>
-        body { font-family: system-ui, sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem; }
-        h1 { color: #333; margin-bottom: 0.5rem; }
-        .subtitle { color: #666; margin-top: 0; }
-        .chapters { display: grid; gap: 1rem; margin-top: 2rem; }
-        .chapter-card { display: block; padding: 1.5rem; border: 1px solid #ddd; border-radius: 8px; text-decoration: none; color: inherit; transition: box-shadow 0.2s; }
-        .chapter-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .chapter-card h2 { margin: 0; color: #333; }
-    </style>
+    <link rel="stylesheet" href="../styles.css">
 </head>
 <body>
-    <h1>Rhysics</h1>
-    <p class="subtitle">My toy physics simulations</p>
-    <div class="chapters">
-${chapter_links}    </div>
+    <div class="container">
+        <div class="back-link"><a href="../index.html">&larr; Back to Home</a></div>
+        <div id="content">
+            <h1>Rhysics</h1>
+            <p class="subtitle">My toy physics simulations</p>
+            <ul class="link-list">
+${chapter_links}            </ul>
+        </div>
+    </div>
 </body>
 </html>
 EOF
@@ -290,10 +269,10 @@ inject_backlink() {
     awk -v ch="$chapter_num" -v sec="$section_num" '
     /<\/style>/ {
         print "        header { display: flex; align-items: center; }"
-        print "        header h1 { flex: 1; text-align: center; margin-right: 100px; }"
-        print "        .back-nav { width: 100px; padding-left: 20px; box-sizing: border-box; }"
-        print "        .back-nav a { color: #aaa; text-decoration: none; font-size: 14px; transition: color 0.2s; }"
-        print "        .back-nav a:hover { color: #fff; }"
+        print "        header h1 { flex: 1; text-align: center; margin-right: 120px; }"
+        print "        .back-nav { width: 120px; padding-left: 20px; box-sizing: border-box; }"
+        print "        .back-nav a { color: #888; text-decoration: none; font-size: 14px; transition: color 0.2s; }"
+        print "        .back-nav a:hover { color: #fff; text-decoration: underline; }"
     }
     { print }
     /<header>/ {
