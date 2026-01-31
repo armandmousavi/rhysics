@@ -274,6 +274,9 @@ inject_backlink() {
     # Create the modified file using awk for reliable multi-line handling
     awk -v ch="$chapter_num" -v sec="$section_num" '
     /<\/style>/ {
+        print "        html, body { overflow: hidden; }"
+        print "        #canvas-container { overflow: hidden; min-height: 0; }"
+        print "        canvas { width: 100% !important; height: 100% !important; }"
         print "        header { display: flex; align-items: center; flex-shrink: 0; }"
         print "        header h1 { flex: 1; text-align: center; margin-right: 120px; }"
         print "        .back-nav { width: 120px; padding-left: 20px; box-sizing: border-box; }"
