@@ -19,10 +19,10 @@ succeeded=0
 
 echo -e "${BLUE}Checking workspace...${NC}"
 if cargo check --workspace; then
-    echo -e "${GREEN}✅ Workspace check passed${NC}"
+    echo -e "${GREEN}Workspace check passed${NC}"
     echo ""
 else
-    echo -e "${RED}❌ Workspace check failed${NC}"
+    echo -e "${RED}Workspace check failed${NC}"
     exit 1
 fi
 
@@ -40,10 +40,10 @@ for chapter_dir in chapter_*/; do
                         echo -e "${BLUE}Testing: $package_name${NC}"
                         
                         if cargo check -p "$package_name" 2>&1; then
-                            echo -e "${GREEN}✅ $package_name: OK${NC}"
+                            echo -e "${GREEN}$package_name: OK${NC}"
                             ((succeeded++))
                         else
-                            echo -e "${RED}❌ $package_name: FAILED${NC}"
+                            echo -e "${RED}$package_name: FAILED${NC}"
                             ((failed++))
                         fi
                         echo ""
@@ -63,9 +63,9 @@ echo -e "Failed: ${RED}$failed${NC}"
 echo ""
 
 if [ $failed -eq 0 ]; then
-    echo -e "${GREEN}🎉 All tests passed!${NC}"
+    echo -e "${GREEN}All tests passed${NC}"
     exit 0
 else
-    echo -e "${RED}❌ Some tests failed${NC}"
+    echo -e "${RED}Some tests failed${NC}"
     exit 1
 fi

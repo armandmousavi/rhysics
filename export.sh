@@ -1,97 +1,108 @@
 #!/bin/bash
 
-# Script to build and export a simulation to WASM
+# Script to build and export simulations to WASM
 
 set -e
 
 # Color codes for output
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
+YELLOW='\033[0;33m'
 RED='\033[0;31m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 # Default target directory
 DEFAULT_TARGET_DIR="${HOME}/Documents/armandmousavi.github.io/rhysics"
 
-echo "WASM Export"
-echo "===================================="
-echo ""
-
-# Check if arguments provided or ask interactively
-if [ $# -eq 3 ]; then
-    chapter_num=$1
-    section_num=$2
-    sim_name=$3
-else
-    # Interactive mode
-    read -p "Enter chapter number: " chapter_num
-    read -p "Enter section number: " section_num
-    read -p "Enter simulation name: " sim_name
-fi
-
-# Validate inputs
-if [ -z "$chapter_num" ] || [ -z "$section_num" ] || [ -z "$sim_name" ]; then
-    echo -e "${RED}Error: Missing required parameters${NC}"
-    echo "Usage: $0 <chapter_num> <section_num> <sim_name>"
-    echo "Example: $0 1 1 orders_of_magnitude"
-    exit 1
-fi
-
-chapter_dir="chapter_${chapter_num}"
-section_dir="${chapter_dir}/section_${section_num}"
-sim_dir="${section_dir}/${sim_name}"
-
-# Check if simulation exists
-if [ ! -d "$sim_dir" ]; then
-    echo -e "${RED}Error: Simulation directory $sim_dir does not exist${NC}"
-    exit 1
-fi
-
-# Ask for target directory
-read -p "Enter target directory [$DEFAULT_TARGET_DIR]: " target_dir
-target_dir=${target_dir:-$DEFAULT_TARGET_DIR}
-
-# Save current directory for absolute path conversion
+# Save current directory
 ORIGINAL_DIR=$(pwd)
 
-# Convert to absolute path if relative
-if [[ "$target_dir" != /* ]]; then
-    target_dir="${ORIGINAL_DIR}/${target_dir}"
-fi
+# ============================================================================
+# HELPER FUNCTIONS
+# ============================================================================
 
-# Create output directory structure
-output_dir="${target_dir}/chapter_${chapter_num}/section_${section_num}/${sim_name}"
-mkdir -p "$output_dir"
+# Get all chapter numbers from source directory
+get_source_chapters() {
+    ls -d chapter_*/ 2>/dev/null | sed 's/chapter_\([0-9]*\)\//\1/' | sort -n
+}
 
-# Convert output_dir to absolute path as well
-output_dir=$(cd "$(dirname "$output_dir")" && pwd)/$(basename "$output_dir")
+# Get all section numbers for a chapter from source directory
+get_source_sections() {
+    local chapter_num=$1
+    ls -d "chapter_${chapter_num}/section_"*/ 2>/dev/null | sed 's/.*section_\([0-9]*\)\//\1/' | sort -n
+}
 
-echo ""
-echo -e "${BLUE}Building simulation: ${sim_name}${NC}"
-echo "  Source: $sim_dir"
-echo "  Output: $output_dir"
-echo ""
+# Get all simulation names for a section from source directory
+get_source_simulations() {
+    local chapter_num=$1
+    local section_num=$2
+    local section_path="chapter_${chapter_num}/section_${section_num}"
+    
+    for dir in "$section_path"/*/; do
+        if [ -d "$dir" ] && [ -f "$dir/Cargo.toml" ]; then
+            basename "$dir"
+        fi
+    done
+}
 
-# Build with wasm-pack
-echo -e "${BLUE}📦 Building WASM package...${NC}"
-cd "$sim_dir"
+# Get all chapters from target (exported) directory
+get_target_chapters() {
+    local target=$1
+    if [ -d "$target" ]; then
+        ls -d "$target"/chapter_*/ 2>/dev/null | sed 's/.*chapter_\([0-9]*\)\//\1/' | sort -n
+    fi
+}
 
-# Use wasm-pack to build with absolute path
-wasm-pack build --target web --out-dir "$output_dir/pkg" --release
+# Get all sections for a chapter from target directory
+get_target_sections() {
+    local target=$1
+    local chapter_num=$2
+    local chapter_path="$target/chapter_${chapter_num}"
+    
+    if [ -d "$chapter_path" ]; then
+        ls -d "$chapter_path"/section_*/ 2>/dev/null | sed 's/.*section_\([0-9]*\)\//\1/' | sort -n
+    fi
+}
 
-# Copy index.html if it exists
-if [ -f "index.html" ]; then
-    echo -e "${BLUE}📄 Copying index.html...${NC}"
-    cp index.html "$output_dir/index.html"
-fi
+# Get all simulations for a section from target directory
+get_target_simulations() {
+    local target=$1
+    local chapter_num=$2
+    local section_num=$3
+    local section_path="$target/chapter_${chapter_num}/section_${section_num}"
+    
+    if [ -d "$section_path" ]; then
+        for dir in "$section_path"/*/; do
+            if [ -d "$dir" ] && [ -d "$dir/pkg" ]; then
+                basename "$dir"
+            fi
+        done
+    fi
+}
 
-# Go back to original directory
-cd "$ORIGINAL_DIR"
+# ============================================================================
+# INDEX GENERATION FUNCTIONS
+# ============================================================================
 
-# Create or update section index
-section_index="${target_dir}/chapter_${chapter_num}/section_${section_num}/index.html"
-if [ ! -f "$section_index" ]; then
-    echo -e "${BLUE}📄 Creating section index...${NC}"
+# Generate/regenerate section index based on all simulations present
+generate_section_index() {
+    local target=$1
+    local chapter_num=$2
+    local section_num=$3
+    local section_path="$target/chapter_${chapter_num}/section_${section_num}"
+    local section_index="$section_path/index.html"
+    
+    echo -e "${BLUE}  Updating section ${section_num} index...${NC}"
+    
+    # Build list of simulations
+    local sim_links=""
+    for sim in $(get_target_simulations "$target" "$chapter_num" "$section_num"); do
+        sim_links="${sim_links}        <a href=\"${sim}/index.html\" class=\"sim-card\">
+            <h2>${sim}</h2>
+        </a>
+"
+    done
+    
     cat > "$section_index" << EOF
 <!DOCTYPE html>
 <html lang="en">
@@ -99,23 +110,47 @@ if [ ! -f "$section_index" ]; then
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chapter ${chapter_num}, Section ${section_num} - Physics Simulations</title>
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem; }
+        h1 { color: #333; }
+        .back-link { margin-bottom: 1rem; }
+        .back-link a { color: #0066cc; text-decoration: none; }
+        .back-link a:hover { text-decoration: underline; }
+        .simulations { display: grid; gap: 1rem; }
+        .sim-card { display: block; padding: 1rem; border: 1px solid #ddd; border-radius: 8px; text-decoration: none; color: inherit; transition: box-shadow 0.2s; }
+        .sim-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .sim-card h2 { margin: 0; color: #333; font-size: 1.2rem; }
+    </style>
 </head>
 <body>
-    <h1>Chapter ${chapter_num}, Section ${section_num} - Simulations</h1>
+    <div class="back-link"><a href="../index.html">&larr; Back to Chapter ${chapter_num}</a></div>
+    <h1>Chapter ${chapter_num}, Section ${section_num}</h1>
+    <h3>Simulations</h3>
     <div class="simulations">
-        <a href="${sim_name}/index.html" class="sim-card">
-            <h2>${sim_name}</h2>
-        </a>
-    </div>
+${sim_links}    </div>
 </body>
 </html>
 EOF
-fi
+}
 
-# Create or update chapter index
-chapter_index="${target_dir}/chapter_${chapter_num}/index.html"
-if [ ! -f "$chapter_index" ]; then
-    echo -e "${BLUE}📄 Creating chapter index...${NC}"
+# Generate/regenerate chapter index based on all sections present
+generate_chapter_index() {
+    local target=$1
+    local chapter_num=$2
+    local chapter_path="$target/chapter_${chapter_num}"
+    local chapter_index="$chapter_path/index.html"
+    
+    echo -e "${BLUE}  Updating chapter ${chapter_num} index...${NC}"
+    
+    # Build list of sections
+    local section_links=""
+    for sec in $(get_target_sections "$target" "$chapter_num"); do
+        section_links="${section_links}        <a href=\"section_${sec}/index.html\" class=\"section-card\">
+            <h2>Section ${sec}</h2>
+        </a>
+"
+    done
+    
     cat > "$chapter_index" << EOF
 <!DOCTYPE html>
 <html lang="en">
@@ -123,23 +158,45 @@ if [ ! -f "$chapter_index" ]; then
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chapter ${chapter_num} - Physics Simulations</title>
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem; }
+        h1 { color: #333; }
+        .back-link { margin-bottom: 1rem; }
+        .back-link a { color: #0066cc; text-decoration: none; }
+        .back-link a:hover { text-decoration: underline; }
+        .sections { display: grid; gap: 1rem; }
+        .section-card { display: block; padding: 1rem; border: 1px solid #ddd; border-radius: 8px; text-decoration: none; color: inherit; transition: box-shadow 0.2s; }
+        .section-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .section-card h2 { margin: 0; color: #333; font-size: 1.2rem; }
+    </style>
 </head>
 <body>
-    <h1>Chapter ${chapter_num} - Physics Simulations</h1>
+    <div class="back-link"><a href="../index.html">&larr; Back to All Chapters</a></div>
+    <h1>Chapter ${chapter_num}</h1>
+    <h3>Sections</h3>
     <div class="sections">
-        <a href="section_${section_num}/index.html" class="section-card">
-            <h2>Section ${section_num}</h2>
-        </a>
-    </div>
+${section_links}    </div>
 </body>
 </html>
 EOF
-fi
+}
 
-# Create root index if it doesn't exist
-root_index="${target_dir}/index.html"
-if [ ! -f "$root_index" ]; then
-    echo -e "${BLUE}📄 Creating root index...${NC}"
+# Generate/regenerate root index based on all chapters present
+generate_root_index() {
+    local target=$1
+    local root_index="$target/index.html"
+    
+    echo -e "${BLUE}  Updating root index...${NC}"
+    
+    # Build list of chapters
+    local chapter_links=""
+    for ch in $(get_target_chapters "$target"); do
+        chapter_links="${chapter_links}        <a href=\"chapter_${ch}/index.html\" class=\"chapter-card\">
+            <h2>Chapter ${ch}</h2>
+        </a>
+"
+    done
+    
     cat > "$root_index" << EOF
 <!DOCTYPE html>
 <html lang="en">
@@ -147,27 +204,480 @@ if [ ! -f "$root_index" ]; then
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rhysics - Physics Simulations</title>
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem; }
+        h1 { color: #333; margin-bottom: 0.5rem; }
+        .subtitle { color: #666; margin-top: 0; }
+        .chapters { display: grid; gap: 1rem; margin-top: 2rem; }
+        .chapter-card { display: block; padding: 1.5rem; border: 1px solid #ddd; border-radius: 8px; text-decoration: none; color: inherit; transition: box-shadow 0.2s; }
+        .chapter-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .chapter-card h2 { margin: 0; color: #333; }
+    </style>
 </head>
 <body>
     <h1>Rhysics</h1>
-    <p class="subtitle">Interactive Physics Simulations with Rust and Bevy</p>
+    <p class="subtitle">My toy physics simulations</p>
     <div class="chapters">
-        <a href="chapter_${chapter_num}/index.html" class="chapter-card">
-            <h2>Chapter ${chapter_num}</h2>
-        </a>
-    </div>
+${chapter_links}    </div>
 </body>
 </html>
 EOF
+}
+
+# Update all indexes (section, chapter, root) after an export
+update_all_indexes() {
+    local target=$1
+    local chapter_num=$2
+    local section_num=$3
+    
+    echo -e "${BLUE}Updating index files...${NC}"
+    
+    # Update section index
+    generate_section_index "$target" "$chapter_num" "$section_num"
+    
+    # Update chapter index  
+    generate_chapter_index "$target" "$chapter_num"
+    
+    # Update root index
+    generate_root_index "$target"
+}
+
+# ============================================================================
+# BUILD FUNCTIONS
+# ============================================================================
+
+# Build a single simulation
+build_simulation() {
+    local chapter_num=$1
+    local section_num=$2
+    local sim_name=$3
+    local target=$4
+    
+    local sim_dir="chapter_${chapter_num}/section_${section_num}/${sim_name}"
+    local output_dir="${target}/chapter_${chapter_num}/section_${section_num}/${sim_name}"
+    
+    echo -e "${BLUE}Building: ${sim_name}${NC}"
+    echo "  Source: $sim_dir"
+    echo "  Output: $output_dir"
+    
+    mkdir -p "$output_dir"
+    
+    cd "$ORIGINAL_DIR/$sim_dir"
+    
+    # Build with wasm-pack
+    wasm-pack build --target web --out-dir "$output_dir/pkg" --release
+    
+    # Copy index.html if it exists and inject backlink
+    if [ -f "index.html" ]; then
+        cp index.html "$output_dir/index.html"
+        inject_backlink "$output_dir/index.html" "$chapter_num" "$section_num"
+    fi
+    
+    cd "$ORIGINAL_DIR"
+    
+    echo -e "${GREEN}  ✓ ${sim_name} built successfully${NC}"
+    echo ""
+}
+
+# Inject backlink into simulation index.html
+inject_backlink() {
+    local file=$1
+    local chapter_num=$2
+    local section_num=$3
+    local tmp_file="${file}.tmp"
+    
+    # Create the modified file using awk for reliable multi-line handling
+    awk -v ch="$chapter_num" -v sec="$section_num" '
+    /<\/style>/ {
+        print "        header { display: flex; align-items: center; }"
+        print "        header h1 { flex: 1; text-align: center; margin-right: 100px; }"
+        print "        .back-nav { width: 100px; padding-left: 20px; box-sizing: border-box; }"
+        print "        .back-nav a { color: #aaa; text-decoration: none; font-size: 14px; transition: color 0.2s; }"
+        print "        .back-nav a:hover { color: #fff; }"
+    }
+    { print }
+    /<header>/ {
+        print "        <div class=\"back-nav\"><a href=\"../index.html\">\046larr; Section " sec "</a></div>"
+    }
+    ' "$file" > "$tmp_file"
+    
+    mv "$tmp_file" "$file"
+}
+
+# Export a single simulation (with index updates)
+export_single_simulation() {
+    local chapter_num=$1
+    local section_num=$2
+    local sim_name=$3
+    local target=$4
+    
+    build_simulation "$chapter_num" "$section_num" "$sim_name" "$target"
+    update_all_indexes "$target" "$chapter_num" "$section_num"
+}
+
+# Export all simulations in a section
+export_section() {
+    local chapter_num=$1
+    local section_num=$2
+    local target=$3
+    
+    echo -e "${YELLOW}Exporting all simulations in Chapter ${chapter_num}, Section ${section_num}${NC}"
+    echo ""
+    
+    local sim_count=0
+    for sim in $(get_source_simulations "$chapter_num" "$section_num"); do
+        build_simulation "$chapter_num" "$section_num" "$sim" "$target"
+        ((sim_count++))
+    done
+    
+    if [ $sim_count -eq 0 ]; then
+        echo -e "${RED}No simulations found in chapter_${chapter_num}/section_${section_num}${NC}"
+        return 1
+    fi
+    
+    update_all_indexes "$target" "$chapter_num" "$section_num"
+    
+    echo -e "${GREEN}Exported ${sim_count} simulation(s) from Section ${section_num}${NC}"
+}
+
+# Export all sections in a chapter
+export_chapter() {
+    local chapter_num=$1
+    local target=$2
+    
+    echo -e "${YELLOW}Exporting all sections in Chapter ${chapter_num}${NC}"
+    echo ""
+    
+    local section_count=0
+    for sec in $(get_source_sections "$chapter_num"); do
+        echo -e "${YELLOW}--- Section ${sec} ---${NC}"
+        for sim in $(get_source_simulations "$chapter_num" "$sec"); do
+            build_simulation "$chapter_num" "$sec" "$sim" "$target"
+        done
+        # Update section index after building all its simulations
+        generate_section_index "$target" "$chapter_num" "$sec"
+        ((section_count++))
+    done
+    
+    if [ $section_count -eq 0 ]; then
+        echo -e "${RED}No sections found in chapter_${chapter_num}${NC}"
+        return 1
+    fi
+    
+    # Update chapter and root indexes
+    generate_chapter_index "$target" "$chapter_num"
+    generate_root_index "$target"
+    
+    echo ""
+    echo -e "${GREEN}Exported ${section_count} section(s) from Chapter ${chapter_num}${NC}"
+}
+
+# Export everything
+export_all() {
+    local target=$1
+    
+    echo -e "${YELLOW}Exporting ALL chapters${NC}"
+    echo ""
+    
+    local chapter_count=0
+    for ch in $(get_source_chapters); do
+        echo -e "${YELLOW}=== Chapter ${ch} ===${NC}"
+        echo ""
+        for sec in $(get_source_sections "$ch"); do
+            echo -e "${YELLOW}--- Section ${sec} ---${NC}"
+            for sim in $(get_source_simulations "$ch" "$sec"); do
+                build_simulation "$ch" "$sec" "$sim" "$target"
+            done
+            generate_section_index "$target" "$ch" "$sec"
+        done
+        generate_chapter_index "$target" "$ch"
+        ((chapter_count++))
+    done
+    
+    if [ $chapter_count -eq 0 ]; then
+        echo -e "${RED}No chapters found${NC}"
+        return 1
+    fi
+    
+    generate_root_index "$target"
+    
+    echo ""
+    echo -e "${GREEN}Exported ${chapter_count} chapter(s)${NC}"
+}
+
+# Regenerate all indexes without rebuilding
+regenerate_indexes() {
+    local target=$1
+    
+    echo -e "${YELLOW}Regenerating all index files...${NC}"
+    echo ""
+    
+    for ch in $(get_target_chapters "$target"); do
+        for sec in $(get_target_sections "$target" "$ch"); do
+            generate_section_index "$target" "$ch" "$sec"
+        done
+        generate_chapter_index "$target" "$ch"
+    done
+    generate_root_index "$target"
+    
+    echo -e "${GREEN}All indexes regenerated!${NC}"
+}
+
+# ============================================================================
+# MAIN MENU
+# ============================================================================
+
+show_menu() {
+    echo "WASM Export Tool"
+    echo "===================================="
+    echo ""
+    echo "What would you like to export?"
+    echo ""
+    echo "  1) Single simulation"
+    echo "  2) All simulations in a section"
+    echo "  3) All sections in a chapter"
+    echo "  4) All chapters"
+    echo "  5) Regenerate indexes"
+    echo "  q) Quit"
+    echo ""
+}
+
+# Get target directory from user
+get_target_directory() {
+    read -p "Enter target directory [$DEFAULT_TARGET_DIR]: " target_dir
+    target_dir=${target_dir:-$DEFAULT_TARGET_DIR}
+    
+    # Convert to absolute path if relative
+    if [[ "$target_dir" != /* ]]; then
+        target_dir="${ORIGINAL_DIR}/${target_dir}"
+    fi
+    
+    echo "$target_dir"
+}
+
+# List available items for selection
+list_chapters() {
+    echo ""
+    echo "Available chapters:"
+    for ch in $(get_source_chapters); do
+        echo "  - Chapter $ch"
+    done
+    echo ""
+}
+
+list_sections() {
+    local chapter_num=$1
+    echo ""
+    echo "Available sections in Chapter ${chapter_num}:"
+    for sec in $(get_source_sections "$chapter_num"); do
+        echo "  - Section $sec"
+    done
+    echo ""
+}
+
+list_simulations() {
+    local chapter_num=$1
+    local section_num=$2
+    echo ""
+    echo "Available simulations in Chapter ${chapter_num}, Section ${section_num}:"
+    for sim in $(get_source_simulations "$chapter_num" "$section_num"); do
+        echo "  - $sim"
+    done
+    echo ""
+}
+
+# ============================================================================
+# COMMAND LINE INTERFACE
+# ============================================================================
+
+# Handle command line arguments for non-interactive use
+if [ $# -ge 1 ]; then
+    case "$1" in
+        --all|-a)
+            target=${2:-$DEFAULT_TARGET_DIR}
+            export_all "$target"
+            exit 0
+            ;;
+        --chapter|-c)
+            if [ -z "$2" ]; then
+                echo -e "${RED}Error: Chapter number required${NC}"
+                echo "Usage: $0 --chapter <chapter_num> [target_dir]"
+                exit 1
+            fi
+            chapter_num=$2
+            target=${3:-$DEFAULT_TARGET_DIR}
+            export_chapter "$chapter_num" "$target"
+            exit 0
+            ;;
+        --section|-s)
+            if [ -z "$2" ] || [ -z "$3" ]; then
+                echo -e "${RED}Error: Chapter and section numbers required${NC}"
+                echo "Usage: $0 --section <chapter_num> <section_num> [target_dir]"
+                exit 1
+            fi
+            chapter_num=$2
+            section_num=$3
+            target=${4:-$DEFAULT_TARGET_DIR}
+            export_section "$chapter_num" "$section_num" "$target"
+            exit 0
+            ;;
+        --sim|--simulation)
+            if [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ]; then
+                echo -e "${RED}Error: Chapter, section, and simulation name required${NC}"
+                echo "Usage: $0 --sim <chapter_num> <section_num> <sim_name> [target_dir]"
+                exit 1
+            fi
+            chapter_num=$2
+            section_num=$3
+            sim_name=$4
+            target=${5:-$DEFAULT_TARGET_DIR}
+            
+            sim_dir="chapter_${chapter_num}/section_${section_num}/${sim_name}"
+            if [ ! -d "$sim_dir" ]; then
+                echo -e "${RED}Error: Simulation directory $sim_dir does not exist${NC}"
+                exit 1
+            fi
+            
+            export_single_simulation "$chapter_num" "$section_num" "$sim_name" "$target"
+            exit 0
+            ;;
+        --regen|--regenerate)
+            target=${2:-$DEFAULT_TARGET_DIR}
+            regenerate_indexes "$target"
+            exit 0
+            ;;
+        --help|-h)
+            echo "WASM Export Tool"
+            echo ""
+            echo "Usage:"
+            echo "  $0                                           Interactive mode"
+            echo "  $0 --all [target_dir]                        Export everything"
+            echo "  $0 --chapter <num> [target_dir]              Export entire chapter"
+            echo "  $0 --section <ch> <sec> [target_dir]         Export entire section"
+            echo "  $0 --sim <ch> <sec> <name> [target_dir]      Export single simulation"
+            echo "  $0 --regen [target_dir]                      Regenerate indexes only"
+            echo ""
+            echo "Legacy format (still supported):"
+            echo "  $0 <chapter> <section> <sim_name>            Export single simulation"
+            echo ""
+            exit 0
+            ;;
+        *)
+            # Legacy format: chapter section sim_name
+            if [ $# -eq 3 ]; then
+                chapter_num=$1
+                section_num=$2
+                sim_name=$3
+                
+                sim_dir="chapter_${chapter_num}/section_${section_num}/${sim_name}"
+                if [ ! -d "$sim_dir" ]; then
+                    echo -e "${RED}Error: Simulation directory $sim_dir does not exist${NC}"
+                    exit 1
+                fi
+                
+                target=$(get_target_directory)
+                export_single_simulation "$chapter_num" "$section_num" "$sim_name" "$target"
+                exit 0
+            else
+                echo -e "${RED}Unknown option: $1${NC}"
+                echo "Use --help for usage information"
+                exit 1
+            fi
+            ;;
+    esac
 fi
 
-echo ""
-echo -e "${GREEN}✅ Export complete!${NC}"
-echo ""
-echo "📁 Files exported to: $output_dir"
-echo ""
-echo "🌐 To test locally:"
-echo "   cd $output_dir"
-echo "   python3 -m http.server 8000"
-echo "   Open: http://localhost:8000"
-echo ""
+# ============================================================================
+# INTERACTIVE MODE
+# ============================================================================
+
+while true; do
+    show_menu
+    read -p "Select option: " choice
+    echo ""
+    
+    case $choice in
+        1)
+            list_chapters
+            read -p "Enter chapter number: " chapter_num
+            
+            if [ -z "$(get_source_sections "$chapter_num")" ]; then
+                echo -e "${RED}No sections found in chapter_${chapter_num}${NC}"
+                continue
+            fi
+            
+            list_sections "$chapter_num"
+            read -p "Enter section number: " section_num
+            
+            if [ -z "$(get_source_simulations "$chapter_num" "$section_num")" ]; then
+                echo -e "${RED}No simulations found in chapter_${chapter_num}/section_${section_num}${NC}"
+                continue
+            fi
+            
+            list_simulations "$chapter_num" "$section_num"
+            read -p "Enter simulation name: " sim_name
+            
+            sim_dir="chapter_${chapter_num}/section_${section_num}/${sim_name}"
+            if [ ! -d "$sim_dir" ]; then
+                echo -e "${RED}Error: Simulation directory $sim_dir does not exist${NC}"
+                continue
+            fi
+            
+            target=$(get_target_directory)
+            echo ""
+            export_single_simulation "$chapter_num" "$section_num" "$sim_name" "$target"
+            ;;
+        2)
+            list_chapters
+            read -p "Enter chapter number: " chapter_num
+            
+            if [ -z "$(get_source_sections "$chapter_num")" ]; then
+                echo -e "${RED}No sections found in chapter_${chapter_num}${NC}"
+                continue
+            fi
+            
+            list_sections "$chapter_num"
+            read -p "Enter section number: " section_num
+            
+            target=$(get_target_directory)
+            echo ""
+            export_section "$chapter_num" "$section_num" "$target"
+            ;;
+        3)
+            list_chapters
+            read -p "Enter chapter number: " chapter_num
+            
+            if [ -z "$(get_source_sections "$chapter_num")" ]; then
+                echo -e "${RED}No sections found in chapter_${chapter_num}${NC}"
+                continue
+            fi
+            
+            target=$(get_target_directory)
+            echo ""
+            export_chapter "$chapter_num" "$target"
+            ;;
+        4)
+            target=$(get_target_directory)
+            echo ""
+            export_all "$target"
+            ;;
+        5)
+            target=$(get_target_directory)
+            echo ""
+            regenerate_indexes "$target"
+            ;;
+        q|Q)
+            echo "Goodbye!"
+            exit 0
+            ;;
+        *)
+            echo -e "${RED}Invalid option${NC}"
+            ;;
+    esac
+    
+    echo ""
+    echo -e "${GREEN}Done!${NC}"
+    echo ""
+    read -p "Press Enter to continue..."
+    echo ""
+done

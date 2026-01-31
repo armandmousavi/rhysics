@@ -24,7 +24,7 @@ fn ui_example_system(
         ui.label("Radius:");
         ui.horizontal(|ui| {
         ui.label("R");
-            ui.add(egui::Slider::new(&mut settings.radius, -1000.0..=1000.0)
+            ui.add(egui::Slider::new(&mut settings.radius, 0.0..=1000.0)
                 .text("m"));
         });
 

@@ -4,7 +4,7 @@
 
 set -e
 
-echo "🔬 Physics Simulation Creator"
+echo "Physics Simulation Creator"
 echo "=============================="
 echo ""
 
@@ -184,9 +184,9 @@ cat > "$full_dir/index.html" << EOF
 EOF
 
 echo ""
-echo "✅ Simulation created successfully!"
+echo " Simulation created successfully!"
 echo ""
-echo "📝 Next steps:"
+echo " Next steps:"
 echo "   1. Add the simulation to Cargo.toml workspace members:"
 echo "      \"${full_dir}\","
 echo ""
@@ -208,12 +208,12 @@ if [ "$add_to_workspace" = "y" ] || [ "$add_to_workspace" = "Y" ]; then
         # Find the members array and add the new member before the closing bracket
         # This is a simple approach - for complex cases you might want a proper TOML parser
         sed -i.bak "/members = \[/,/\]/s|\]|    \"${full_dir}\",\n]|" Cargo.toml
-        echo "✅ Added to workspace members in Cargo.toml"
+        echo " Added to workspace members in Cargo.toml"
         rm Cargo.toml.bak 2>/dev/null || true
     else
-        echo "ℹ️  Already in workspace members"
+        echo "Already in workspace members"
     fi
 fi
 
 echo ""
-echo "🎉 Done! Happy coding!"
+echo "Done"
