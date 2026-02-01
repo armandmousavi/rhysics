@@ -116,35 +116,47 @@ cat > "$full_dir/index.html" << EOF
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chapter ${chapter_num}.${section_num} - ${display_title}</title>
+    <title>${display_title}</title>
     <style>
-        body {
+        html, body {
             margin: 0;
             padding: 0;
             width: 100vw;
             height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            overflow: hidden;
             background: #1a1a1a;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
         }
         header {
-            width: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            align-items: center;
             padding: 20px;
             background: #2a2a2a;
             color: #fff;
-            text-align: center;
             box-shadow: 0 2px 10px rgba(0,0,0,0.3);
         }
         header h1 {
+            flex: 1;
             margin: 0;
             font-size: 24px;
             font-weight: 300;
+            text-align: center;
+        }
+        .back-link {
+            color: #888;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .back-link:hover {
+            color: #fff;
         }
         #canvas-container {
-            flex: 1;
-            width: 100%;
+            margin-top: 68px;
+            height: calc(100vh - 68px);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -152,7 +164,6 @@ cat > "$full_dir/index.html" << EOF
         canvas {
             max-width: 100%;
             max-height: 100%;
-            border: 1px solid #333;
         }
         #loading {
             color: #fff;
@@ -162,10 +173,11 @@ cat > "$full_dir/index.html" << EOF
 </head>
 <body>
     <header>
-        <h1>Chapter ${chapter_num}.${section_num} - ${display_title}</h1>
+        <a class="back-link" href="../index.html">&larr; Back</a>
+        <h1>${display_title}</h1>
     </header>
     <div id="canvas-container">
-        <div id="loading">Loading simulation...</div>
+        <div id="loading">Loading...</div>
         <canvas id="bevy-canvas" style="display:none;"></canvas>
     </div>
     <script type="module">
@@ -173,10 +185,8 @@ cat > "$full_dir/index.html" << EOF
         init().then(() => {
             document.getElementById('loading').style.display = 'none';
             document.getElementById('bevy-canvas').style.display = 'block';
-            console.log("Simulation loaded successfully!");
         }).catch(err => {
-            document.getElementById('loading').textContent = 'Error loading simulation: ' + err;
-            console.error(err);
+            document.getElementById('loading').textContent = 'Error: ' + err;
         });
     </script>
 </body>

@@ -252,41 +252,15 @@ build_simulation() {
     # Remove wasm-pack's .gitignore so pkg files can be committed to target repo
     rm -f "$output_dir/pkg/.gitignore"
     
-    # Copy index.html if it exists and inject backlink
+    # Copy index.html if it exists
     if [ -f "index.html" ]; then
         cp index.html "$output_dir/index.html"
-        inject_backlink "$output_dir/index.html" "$chapter_num" "$section_num"
     fi
     
     cd "$ORIGINAL_DIR"
     
     echo -e "${GREEN}  ✓ ${sim_name} built successfully${NC}"
     echo ""
-}
-
-# Inject backlink into simulation index.html
-inject_backlink() {
-    local file=$1
-    local chapter_num=$2
-    local section_num=$3
-    local tmp_file="${file}.tmp"
-    
-    # Create the modified file using awk for reliable multi-line handling
-    awk -v ch="$chapter_num" -v sec="$section_num" '
-    /<\/style>/ {
-        print "        header { display: flex; align-items: center; }"
-        print "        header h1 { flex: 1; text-align: center; margin-right: 120px; }"
-        print "        .back-nav { width: 120px; padding-left: 20px; box-sizing: border-box; }"
-        print "        .back-nav a { color: #888; text-decoration: none; font-size: 14px; transition: color 0.2s; }"
-        print "        .back-nav a:hover { color: #fff; text-decoration: underline; }"
-    }
-    { print }
-    /<header>/ {
-        print "        <div class=\"back-nav\"><a href=\"../index.html\">\046larr; Section " sec "</a></div>"
-    }
-    ' "$file" > "$tmp_file"
-    
-    mv "$tmp_file" "$file"
 }
 
 # Export a single simulation (with index updates)
