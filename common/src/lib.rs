@@ -23,8 +23,6 @@ pub fn default_window_plugin(title: &str) -> bevy::window::WindowPlugin {
         primary_window: Some(Window {
             title: title.to_string(),
             canvas: Some("#bevy-canvas".to_string()),
-            fit_canvas_to_parent: true,
-            prevent_default_event_handling: true,
             ..default()
         }),
         ..default()
