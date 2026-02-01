@@ -116,7 +116,7 @@ cat > "$full_dir/index.html" << EOF
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${display_title}</title>
+    <title>Chapter ${chapter_num}.${section_num} - ${display_title}</title>
     <style>
         html, body {
             margin: 0;
@@ -132,6 +132,7 @@ cat > "$full_dir/index.html" << EOF
             top: 0;
             left: 0;
             right: 0;
+            z-index: 100;
             display: flex;
             align-items: center;
             padding: 20px;

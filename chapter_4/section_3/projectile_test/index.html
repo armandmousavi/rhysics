@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Projectile Test</title>
+    <title>Chapter 4.3 - Projectile Test</title>
     <style>
         html, body {
             margin: 0;
@@ -19,6 +19,7 @@
             top: 0;
             left: 0;
             right: 0;
+            z-index: 100;
             display: flex;
             align-items: center;
             padding: 20px;
@@ -38,7 +39,9 @@
             text-decoration: none;
             font-size: 14px;
         }
-        .back-link:hover { color: #fff; }
+        .back-link:hover {
+            color: #fff;
+        }
         #canvas-container {
             margin-top: 68px;
             height: calc(100vh - 68px);
@@ -46,8 +49,14 @@
             justify-content: center;
             align-items: center;
         }
-        canvas { max-width: 100%; max-height: 100%; }
-        #loading { color: #fff; font-size: 18px; }
+        canvas {
+            max-width: 100%;
+            max-height: 100%;
+        }
+        #loading {
+            color: #fff;
+            font-size: 18px;
+        }
     </style>
 </head>
 <body>
