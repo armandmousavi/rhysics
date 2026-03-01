@@ -93,6 +93,11 @@ EOF
 
 # Build a single simulation
 build_simulation() {
+    if ! command -v wasm-pack >/dev/null 2>&1; then
+        echo -e "${RED}Error: wasm-pack not found. Install it with: cargo install wasm-pack${NC}"
+        exit 1
+    fi
+
     local sim_name=$1
     local target=$2
     
