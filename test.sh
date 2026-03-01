@@ -26,31 +26,21 @@ else
     exit 1
 fi
 
-# Test each simulation individually
-for chapter_dir in chapter_*/; do
-    if [ -d "$chapter_dir" ]; then
-        chapter=$(basename "$chapter_dir")
+# Test each simulation individually (simulations/*/)
+for sim_dir in simulations/*/; do
+    if [ -d "$sim_dir" ] && [ -f "${sim_dir}Cargo.toml" ]; then
+        package_name=$(grep '^name = ' "${sim_dir}Cargo.toml" | sed 's/name = "\(.*\)"/\1/')
         
-        for section_dir in "${chapter_dir}"section_*/; do
-            if [ -d "$section_dir" ]; then
-                for sim_dir in "${section_dir}"*/; do
-                    if [ -d "$sim_dir" ] && [ -f "${sim_dir}Cargo.toml" ]; then
-                        package_name=$(grep '^name = ' "${sim_dir}Cargo.toml" | sed 's/name = "\(.*\)"/\1/')
-                        
-                        echo -e "${BLUE}Testing: $package_name${NC}"
-                        
-                        if cargo check -p "$package_name" 2>&1; then
-                            echo -e "${GREEN}$package_name: OK${NC}"
-                            ((succeeded++))
-                        else
-                            echo -e "${RED}$package_name: FAILED${NC}"
-                            ((failed++))
-                        fi
-                        echo ""
-                    fi
-                done
-            fi
-        done
+        echo -e "${BLUE}Testing: $package_name${NC}"
+        
+        if cargo check -p "$package_name" 2>&1; then
+            echo -e "${GREEN}$package_name: OK${NC}"
+            ((succeeded++))
+        else
+            echo -e "${RED}$package_name: FAILED${NC}"
+            ((failed++))
+        fi
+        echo ""
     fi
 done
 

@@ -5,20 +5,19 @@ A collection of educational physics simulations built with Rust and Bevy, follow
 ## Project Structure
 
 ```
-rhysics-bevy/
+rhysics/
 ├── common/              # Shared library for all simulations
 │   └── src/
 │       └── lib.rs       # Common components, systems, and utilities
-├── chapter_X/           # Organized by textbook chapters
-│   └── section_Y/       # Sections containing multiple simulations
-│       └── simulation_name/  # Individual simulation crates
-│           ├── Cargo.toml
-│           ├── src/
-│           │   ├── lib.rs   # Simulation logic + WASM entry point
-│           │   └── main.rs  # Native binary entry point
-│           └── index.html   # Web interface for the simulation
-├── create-sim.sh        # Interactive script to create new simulations
-├── export-sim.sh        # Script to build and export to WASM
+├── simulations/         # All simulations live here
+│   └── simulation_name/ # e.g. boids/, acceleration_vector/
+│       ├── Cargo.toml
+│       ├── src/
+│       │   ├── lib.rs   # Simulation logic + WASM entry point
+│       │   └── main.rs  # Native binary entry point
+│       └── index.html   # Web interface for the simulation
+├── create-new.sh        # Interactive script to create new simulations
+├── export.sh            # Script to build and export to WASM
 └── Cargo.toml           # Workspace configuration
 
 ```
@@ -35,10 +34,10 @@ rhysics-bevy/
 
 ```bash
 # Run a specific simulation natively
-cargo run -p orders_of_magnitude
+cargo run -p boids
 
 # Or from the simulation directory
-cd chapter_1/section_1_orders_of_magnitude
+cd simulations/boids
 cargo run
 ```
 
@@ -51,15 +50,11 @@ Use the interactive creation script:
 ```
 
 This will prompt you for:
-- Chapter number (e.g., 1)
-- Section number (e.g., 1)
 - Simulation name in snake_case (e.g., units_and_standards)
 - Display title (e.g., "Units and Standards")
 
-Multiple simulations can exist in the same section.
-
 The script will:
-1. Create the directory structure
+1. Create the directory `simulations/<sim_name>/`
 2. Generate boilerplate code
 3. Create a Cargo.toml with proper dependencies
 4. Optionally add it to the workspace
@@ -73,14 +68,15 @@ Use the export script to build and export a simulation:
 ./export.sh
 
 # Or with arguments
-./export.sh 1 1 orders_of_magnitude
+./export.sh --sim boids
+# Or legacy: ./export.sh boids
 ```
 
 This will:
 1. Build the simulation with wasm-pack
 2. Generate JavaScript bindings
 3. Copy files to your target directory
-4. Create index pages if needed
+4. Update the root index page
 
 ### Testing WASM Builds Locally
 
@@ -92,7 +88,7 @@ cd ~/Documents/armandmousavi.github.io/rhysics
 python3 -m http.server 8000
 
 # Open in browser
-# http://localhost:8000/chapter_1/section_1/
+# http://localhost:8000/boids/
 ```
 
 ## Common Library

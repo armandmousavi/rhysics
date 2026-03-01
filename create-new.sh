@@ -8,20 +8,6 @@ echo "Physics Simulation Creator"
 echo "=============================="
 echo ""
 
-# Get chapter number
-read -p "Enter chapter number (e.g., 1): " chapter_num
-if [ -z "$chapter_num" ]; then
-    echo "Error: Chapter number cannot be empty"
-    exit 1
-fi
-
-# Get section number
-read -p "Enter section number (e.g., 1): " section_num
-if [ -z "$section_num" ]; then
-    echo "Error: Section number cannot be empty"
-    exit 1
-fi
-
 # Get simulation name (snake_case)
 read -p "Enter simulation name in snake_case (e.g., orders_of_magnitude): " sim_name
 if [ -z "$sim_name" ]; then
@@ -35,10 +21,8 @@ if [ -z "$display_title" ]; then
     display_title=$sim_name
 fi
 
-# Create directory structure
-chapter_dir="chapter_${chapter_num}"
-section_dir="${chapter_dir}/section_${section_num}"
-full_dir="${section_dir}/${sim_name}"
+# Create directory structure under simulations/
+full_dir="simulations/${sim_name}"
 
 echo ""
 echo "Creating simulation at: $full_dir"
@@ -60,7 +44,7 @@ edition = "2021"
 [dependencies]
 bevy = { workspace = true }
 log = { workspace = true }
-rhysics-common = { path = "../../../common", features = ["egui"] }
+rhysics-common = { path = "../../common", features = ["egui"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { workspace = true }
@@ -82,7 +66,7 @@ use wasm_bindgen::prelude::*;
 pub fn run() {
     App::new()
         .add_plugins(DefaultPlugins.set(default_window_plugin(
-            "Chapter ${chapter_num}.${section_num} - ${display_title}"
+            "${display_title}"
         )))
         .add_systems(Startup, setup)
         .add_systems(Update, update)
@@ -116,7 +100,7 @@ cat > "$full_dir/index.html" << EOF
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chapter ${chapter_num}.${section_num} - ${display_title}</title>
+    <title>${display_title}</title>
     <style>
         html, body {
             margin: 0;
@@ -207,17 +191,14 @@ echo "   3. Test locally:"
 echo "      cargo run -p ${sim_name}"
 echo ""
 echo "   4. Build for WASM:"
-echo "      ./export-sim.sh ${chapter_num} ${section_num} ${sim_name}"
+echo "      ./export.sh --sim ${sim_name}"
 echo ""
 
 # Ask if we should add to workspace
 read -p "Would you like to add this to Cargo.toml workspace now? (y/n): " add_to_workspace
 
 if [ "$add_to_workspace" = "y" ] || [ "$add_to_workspace" = "Y" ]; then
-    # Check if the workspace member line exists
     if ! grep -q "\"${full_dir}\"" Cargo.toml; then
-        # Find the members array and add the new member before the closing bracket
-        # This is a simple approach - for complex cases you might want a proper TOML parser
         sed -i.bak "/members = \[/,/\]/s|\]|    \"${full_dir}\",\n]|" Cargo.toml
         echo " Added to workspace members in Cargo.toml"
         rm Cargo.toml.bak 2>/dev/null || true

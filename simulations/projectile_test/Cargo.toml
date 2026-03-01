@@ -1,12 +1,12 @@
 [package]
-name = "centripetal_acceleration"
+name = "projectile_test"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 bevy = { workspace = true }
 log = { workspace = true }
-rhysics-common = { path = "../../../common", features = ["egui"] }
+rhysics-common = { path = "../../common", features = ["egui"] }
 bevy_egui = "0.38.0"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
