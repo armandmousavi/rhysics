@@ -10,19 +10,17 @@ YELLOW='\033[0;33m'
 NC='\033[0m'
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-TARGET_REPO="${HOME}/Documents/armandmousavi.github.io"
-TARGET_DIR="${TARGET_REPO}/rhysics"
 GITHUB_REPO="git@github.com:armandmousavi/armandmousavi.github.io.git"
+TARGET_REPO="${SCRIPT_DIR}/armandmousavi.github.io"
+TARGET_DIR="${TARGET_REPO}/rhysics"
 
 echo -e "${BLUE}=== Rhysics Deploy ===${NC}"
 echo ""
 
-# Clone target repo if it doesn't exist
 if [ ! -d "$TARGET_REPO/.git" ]; then
     echo -e "${BLUE}Cloning target repo...${NC}"
     git clone "$GITHUB_REPO" "$TARGET_REPO"
 else
-    # Pull latest changes
     echo -e "${BLUE}Pulling latest from target repo...${NC}"
     cd "$TARGET_REPO"
     git pull --ff-only || true

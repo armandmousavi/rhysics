@@ -52,6 +52,10 @@ web-sys = { workspace = true }
 
 [lib]
 crate-type = ["cdylib", "rlib"]
+
+# Faster wasm-pack builds: -O1 instead of default (wasm-opt is the slow part, not Rust)
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["-O1"]
 EOF
 
 # Create lib.rs

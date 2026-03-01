@@ -81,8 +81,8 @@ This will:
 ### Testing WASM Builds Locally
 
 ```bash
-# Navigate to the output directory
-cd ~/Documents/armandmousavi.github.io/rhysics
+# Navigate to the output directory (armandmousavi.github.io is a submodule)
+cd armandmousavi.github.io/rhysics
 
 # Start a local server
 python3 -m http.server 8000

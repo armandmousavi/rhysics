@@ -10,32 +10,30 @@ YELLOW='\033[0;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-TARGET_REPO="${HOME}/Documents/armandmousavi.github.io"
-TARGET_DIR="${TARGET_REPO}/rhysics"
+# Target repo: clone of armandmousavi.github.io (same as deploy.sh)
+REPO_ROOT="$(git rev-parse --show-toplevel)"
 GITHUB_REPO="git@github.com:armandmousavi/armandmousavi.github.io.git"
+TARGET_REPO="${REPO_ROOT}/armandmousavi.github.io"
+TARGET_DIR="${TARGET_REPO}/rhysics"
 
 # Check if any simulation source files are staged
 STAGED_FILES=$(git diff --cached --name-only)
 
 # Check for changes in simulation source files or common library
-if echo "$STAGED_FILES" | grep -qE '(chapter_[0-9]+/section_[0-9]+/.+/src/|common/src/|chapter_[0-9]+/section_[0-9]+/.+/Cargo\.toml|common/Cargo\.toml)'; then
+if echo "$STAGED_FILES" | grep -qE '(simulations/.+/src/|common/src/|simulations/.+/Cargo\.toml|common/Cargo\.toml)'; then
     echo -e "${BLUE}Simulation source files changed - building exports...${NC}"
     echo ""
-    
-    # Clone target repo if it doesn't exist
+
     if [ ! -d "$TARGET_REPO/.git" ]; then
         echo -e "${BLUE}Cloning target repo...${NC}"
         git clone "$GITHUB_REPO" "$TARGET_REPO"
     else
-        # Pull latest changes
-        echo -e "${BLUE}Pulling latest from target repo...${NC}"
-        cd "$TARGET_REPO"
-        git pull --ff-only || true
-        cd - > /dev/null
+        echo -e "${BLUE}Pulling target repo...${NC}"
+        cd "$TARGET_REPO" && git pull --ff-only || true && cd - > /dev/null
     fi
-    
+
     # Run export
-    ./export.sh --all "$TARGET_DIR"
+    "$REPO_ROOT/export.sh" --all "$TARGET_DIR"
     
     # Commit and push the built files
     cd "$TARGET_REPO"
