@@ -32,12 +32,19 @@ if echo "$STAGED_FILES" | grep -qE '(simulations/.+/src/|common/src/|simulations
         cd "$TARGET_REPO" && git pull --ff-only || true && cd - > /dev/null
     fi
 
-    # Run export
+    # Remove only obsolete entries; export skips unchanged sims (cache)
+    mkdir -p "$TARGET_DIR"
+    for existing in "$TARGET_DIR"/*/; do
+        [ -d "$existing" ] || continue
+        name=$(basename "$existing")
+        [ -d "$REPO_ROOT/simulations/$name" ] || rm -rf "$existing"
+    done
+    rm -f "$TARGET_DIR/index.html"
     "$REPO_ROOT/export.sh" --all "$TARGET_DIR"
-    
-    # Commit and push the built files
+
+    # Commit and push the built files (including deletions)
     cd "$TARGET_REPO"
-    git add rhysics/
+    git add -A rhysics/
     
     if git diff --staged --quiet; then
         echo -e "${YELLOW}No changes to deploy${NC}"

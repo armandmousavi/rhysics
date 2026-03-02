@@ -92,7 +92,7 @@ EOF
 # BUILD FUNCTIONS
 # ============================================================================
 
-# Build a single simulation
+# Build a single simulation (skip wasm-pack if output is newer than source)
 build_simulation() {
     if ! command -v wasm-pack >/dev/null 2>&1; then
         echo -e "${RED}Error: wasm-pack not found. Install it with: cargo install wasm-pack${NC}"
@@ -105,6 +105,19 @@ build_simulation() {
     local sim_dir="simulations/${sim_name}"
     local output_dir="${target}/${sim_name}"
     
+    # Skip wasm-pack if output exists and no source file is newer (avoids slow wasm-opt when nothing changed)
+    if [ -d "$output_dir/pkg" ]; then
+        wasm_file=$(find "$output_dir/pkg" -maxdepth 1 -name '*.wasm' -print -quit 2>/dev/null)
+        if [ -n "$wasm_file" ] && [ -f "$wasm_file" ]; then
+            if ! find "$ORIGINAL_DIR/$sim_dir" -type f -newer "$wasm_file" 2>/dev/null | grep -q .; then
+                [ -f "$ORIGINAL_DIR/$sim_dir/index.html" ] && cp "$ORIGINAL_DIR/$sim_dir/index.html" "$output_dir/index.html"
+                echo -e "${GREEN}  ✓ ${sim_name} (cached)${NC}"
+                echo ""
+                return
+            fi
+        fi
+    fi
+
     echo -e "${BLUE}Building: ${sim_name}${NC}"
     echo "  Source: $sim_dir"
     echo "  Output: $output_dir"

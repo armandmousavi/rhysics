@@ -27,7 +27,19 @@ else
     cd "$SCRIPT_DIR"
 fi
 
-# Build all simulations
+# Remove only obsolete entries (e.g. chapter_*) so cache is kept for unchanged sims
+echo -e "${BLUE}Removing obsolete entries from rhysics/...${NC}"
+mkdir -p "$TARGET_DIR"
+for existing in "$TARGET_DIR"/*/; do
+    [ -d "$existing" ] || continue
+    name=$(basename "$existing")
+    if [ ! -d "$SCRIPT_DIR/simulations/$name" ]; then
+        rm -rf "$existing"
+    fi
+done
+rm -f "$TARGET_DIR/index.html"
+
+# Build all simulations (unchanged sims skipped via cache)
 echo ""
 echo -e "${BLUE}Building all simulations...${NC}"
 ./export.sh --all "$TARGET_DIR"
@@ -49,7 +61,7 @@ fi
 echo ""
 echo -e "${BLUE}Pushing built simulations to GitHub Pages...${NC}"
 cd "$TARGET_REPO"
-git add rhysics/
+git add -A rhysics/
 if git diff --staged --quiet; then
     echo -e "${YELLOW}No simulation changes to commit${NC}"
 else
