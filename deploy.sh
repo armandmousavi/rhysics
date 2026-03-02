@@ -39,7 +39,7 @@ for existing in "$TARGET_DIR"/*/; do
 done
 rm -f "$TARGET_DIR/index.html"
 
-# Build all simulations (unchanged sims skipped via cache)
+# Build all simulations
 echo ""
 echo -e "${BLUE}Building all simulations...${NC}"
 ./export.sh --all "$TARGET_DIR"
