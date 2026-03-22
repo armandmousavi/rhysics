@@ -47,6 +47,28 @@ get_target_simulations() {
     done | sort
 }
 
+# Deploy uses one shared file at target/sim-page.css; every sim page links href="../sim-page.css".
+# Copy from the rhysics repo once per export (not once per simulation — build_simulation runs N times).
+sync_sim_page_css() {
+    local target=$1
+    local src="${ORIGINAL_DIR}/sim-page.css"
+    if [ -f "$src" ]; then
+        cp "$src" "${target}/sim-page.css"
+    else
+        echo -e "${YELLOW}  Warning: sim-page.css not found at ${src}${NC}"
+    fi
+}
+
+# Source index.html uses ../../sim-page.css (from simulations/<sim>/). After cp to target/<sim>/,
+# rewrite to ../sim-page.css so it points at the single shared file beside each sim folder.
+fix_sim_index_stylesheet_href() {
+    local file=$1
+    if [ -f "$file" ] && grep -q 'href="../../sim-page.css"' "$file"; then
+        sed -i.bak 's|href="../../sim-page.css"|href="../sim-page.css"|g' "$file"
+        rm -f "${file}.bak"
+    fi
+}
+
 # ============================================================================
 # INDEX GENERATION
 # ============================================================================
@@ -110,7 +132,10 @@ build_simulation() {
         wasm_file=$(find "$output_dir/pkg" -maxdepth 1 -name '*.wasm' -print -quit 2>/dev/null)
         if [ -n "$wasm_file" ] && [ -f "$wasm_file" ]; then
             if ! find "$ORIGINAL_DIR/$sim_dir" -type f -newer "$wasm_file" 2>/dev/null | grep -q .; then
-                [ -f "$ORIGINAL_DIR/$sim_dir/index.html" ] && cp "$ORIGINAL_DIR/$sim_dir/index.html" "$output_dir/index.html"
+                if [ -f "$ORIGINAL_DIR/$sim_dir/index.html" ]; then
+                    cp "$ORIGINAL_DIR/$sim_dir/index.html" "$output_dir/index.html"
+                    fix_sim_index_stylesheet_href "$output_dir/index.html"
+                fi
                 echo -e "${GREEN}  ✓ ${sim_name} (cached)${NC}"
                 echo ""
                 return
@@ -132,6 +157,7 @@ build_simulation() {
     
     if [ -f "index.html" ]; then
         cp index.html "$output_dir/index.html"
+        fix_sim_index_stylesheet_href "$output_dir/index.html"
     fi
     
     cd "$ORIGINAL_DIR"
@@ -144,7 +170,8 @@ build_simulation() {
 export_single_simulation() {
     local sim_name=$1
     local target=$2
-    
+
+    sync_sim_page_css "$target"
     build_simulation "$sim_name" "$target"
     echo -e "${BLUE}Updating index...${NC}"
     generate_root_index "$target"
@@ -156,6 +183,8 @@ export_all() {
     
     echo -e "${YELLOW}Exporting ALL simulations${NC}"
     echo ""
+
+    sync_sim_page_css "$target"
     
     local count=0
     for sim in $(get_source_simulations); do
@@ -179,6 +208,7 @@ regenerate_indexes() {
     local target=$1
     
     echo -e "${YELLOW}Regenerating index...${NC}"
+    sync_sim_page_css "$target"
     generate_root_index "$target"
     echo -e "${GREEN}Done!${NC}"
 }
